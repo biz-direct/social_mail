@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 # Copyright 2016-2017 Jairo Llopis <jairo.llopis@tecnativa.com>
+# Copyright 2019 Alexandre Díaz <alexandre.diaz@tecnativa.com>
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 
 from odoo.addons.website_mass_mailing.controllers import main
@@ -10,7 +10,7 @@ class MassMailController(main.MassMailController):
     @route()
     def is_subscriber(self, *args, **kwargs):
         """Get user name too."""
-        result = super(MassMailController, self).is_subscriber(*args, **kwargs)
+        result = super().is_subscriber(*args, **kwargs)
         if request.website.user_id != request.env.user:
             name = request.env.user.name
         else:
@@ -20,7 +20,7 @@ class MassMailController(main.MassMailController):
     @route()
     def subscribe(self, list_id, email, **post):
         """Store email with name in session."""
-        result = super(MassMailController, self).subscribe(
+        result = super().subscribe(
             list_id, email, **post)
         name, email = request.env['mail.mass_mailing.contact'].sudo() \
             .get_name_email(email)

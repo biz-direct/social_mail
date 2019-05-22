@@ -1,4 +1,5 @@
 /* Copyright 2016-2017 Jairo Llopis <jairo.llopis@tecnativa.com>
+   Copyright 2019 Alexanre Díaz <alexandre.diaz@tecnativa.com>
  * License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl). */
 odoo.define("website_mass_mailing_name.editor_and_public_tour", function (require) {
     "use strict";
@@ -19,7 +20,7 @@ odoo.define("website_mass_mailing_name.editor_and_public_tour", function (requir
             },
             {
                 content: "Drag and drop a text snippet",
-                trigger: ".oe_snippet[name='Text Block'] .oe_snippet_thumbnail",
+                trigger: ".oe_snippet[name='Text block'] .oe_snippet_thumbnail",
                 run: "drag_and_drop #wrap",
             },
             {

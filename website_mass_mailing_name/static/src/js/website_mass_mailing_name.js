@@ -3,11 +3,11 @@
 
 odoo.define("website_mass_mailing_name.subscribe", function (require) {
     "use strict";
-    require("mass_mailing.website_integration");
-    var animation = require("web_editor.snippets.animation");
+    // require("mass_mailing.website_integration");
+    var sAnimation = require('website.content.snippets.animation');
 
-    animation.registry.subscribe.include({
-        start: function(editable_mode) {
+    sAnimation.registry.subscribe.include({
+        start: function (editable_mode) {
             this.$email = this.$target.find(".js_subscribe_email");
             this.$name = this.$target.find(".js_subscribe_name");
             // Thanks upstream for your @$&#?!! inheritance-ready code.
@@ -18,26 +18,22 @@ odoo.define("website_mass_mailing_name.subscribe", function (require) {
             return this._super(editable_mode);
         },
 
-        on_click: function() {
+        on_click: function () {
             var email_error = !this.$email.val().match(/.+@.+/),
-                name_error = this.$name.length && !this.$name.val(),
-                values = {
-                    "list_id": this.$target.data('list-id'),
-                    "email": this.$email.val(),
-                };
+                name_error = this.$name.length && !this.$name.val();
             // Stop on error
             if (email_error || name_error) {
-                this.$target.addClass("has-error")
+                this.$target.addClass("has-error");
                 return false;
             }
             return this._super.apply(this, arguments);
         },
 
-        on_ajax_send: function(event, jqXHR, ajaxOptions) {
+        on_ajax_send: function (event, jqXHR, ajaxOptions) {
             // Add handlers on correct requests
-            if (ajaxOptions.url == "/website_mass_mailing/is_subscriber") {
+            if (ajaxOptions.url === "/website_mass_mailing/is_subscriber") {
                 jqXHR.done($.proxy(this.on_start, this));
-            } else if (ajaxOptions.url == "/website_mass_mailing/subscribe") {
+            } else if (ajaxOptions.url === "/website_mass_mailing/subscribe") {
                 var data = JSON.parse(ajaxOptions.data);
                 data.params.email = _.str.sprintf(
                     "%s <%s>",
@@ -48,9 +44,8 @@ odoo.define("website_mass_mailing_name.subscribe", function (require) {
             }
         },
 
-        on_start: function(data) {
-            this.$name.val(data.result.name)
-            .attr(
+        on_start: function (data) {
+            this.$name.val(data.result.name).attr(
                 "disabled",
                 Boolean(data.result.is_subscriber && data.result.name.length)
             );

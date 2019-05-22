@@ -6,7 +6,7 @@
 
 <template id="s_newsletter_subscribe_form"
           inherit_id="website_mass_mailing.s_newsletter_subscribe_form">
-    <xpath expr="//input[@class='js_subscribe_email form-control']"
+    <xpath expr="//input[hasclass('js_subscribe_email')]"
            position="before">
         <input
             name="name"
