@@ -44,21 +44,24 @@ class MassMailingList(models.Model):
         for one in dynamic:
             sync_domain = safe_eval(one.sync_domain) + [("email", "!=", False)]
             desired_partners = Partner.search(sync_domain)
-            # Remove undesired contacts when synchronization is full
+            # Detach undesired contacts when synchronization is full
             if one.sync_method == "full":
-                Contact.search([
-                    ("list_ids", "in", one.id),
-                    ("partner_id", "not in", desired_partners.ids),
-                ]).unlink()
-            current_contacts = Contact.search([("list_ids", "in", one.id)])
-            current_partners = current_contacts.mapped("partner_id")
+                one.contact_ids -= one.contact_ids.filtered(
+                    lambda r: r.partner_id not in desired_partners)
             # Add new contacts
+            current_partners = one.contact_ids.mapped('partner_id')
+            contact_to_list = self.env["mail.mass_mailing.contact"]
             vals_list = []
             for partner in desired_partners - current_partners:
-                vals_list.append({
-                    "list_ids": [(4, one.id)],
-                    "partner_id": partner.id,
-                })
+                contacts_in_partner = partner.mass_mailing_contact_ids
+                if contacts_in_partner:
+                    contact_to_list |= contacts_in_partner[0]
+                else:
+                    vals_list.append({
+                        "list_ids": [(4, one.id)],
+                        "partner_id": partner.id,
+                    })
+            one.contact_ids |= contact_to_list
             Contact.create(vals_list)
             one.is_synced = True
         # Invalidate cached contact count

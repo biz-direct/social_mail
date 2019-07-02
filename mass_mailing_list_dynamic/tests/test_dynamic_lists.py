@@ -61,7 +61,7 @@ class DynamicListCase(common.SavepointCase):
         ]).unlink()
         self.list.action_sync()
         self.assertEqual(self.list.contact_nbr, 3)
-        self.assertFalse(contact0.exists())
+        self.assertFalse(contact0 in self.list.contact_ids)
         # Cannot add or edit contacts in fully synced lists
         with self.assertRaises(ValidationError):
             Contact.create({
