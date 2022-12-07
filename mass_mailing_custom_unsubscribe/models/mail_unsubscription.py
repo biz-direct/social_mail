@@ -3,8 +3,6 @@
 
 from odoo import _, api, fields, models
 
-from odoo.addons.mass_mailing.models.mailing import MASS_MAILING_BUSINESS_MODELS
-
 from .. import exceptions
 
 
@@ -75,7 +73,7 @@ class MailUnsubscription(models.Model):
         """Models that can be linked to a ``mailing.mailing``."""
         model = (
             self.env["ir.model"]
-            .search([("model", "in", MASS_MAILING_BUSINESS_MODELS)])
+            .search([("is_mailing_enabled", "=", True)])
             .mapped("model")
         )
         return self.map_mailing_list_models(model)
