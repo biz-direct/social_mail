@@ -1,145 +1,85 @@
 # Copyright 2018 David Juaneda - <djuaneda@sdi.es>
+# Copyright 2023 Tecnativa - Víctor Martínez
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
-from odoo.tests.common import TransactionCase
+from odoo.tests import common, new_test_user
 
 
-class TestMailActivityBoardMethods(TransactionCase):
-    def setUp(self):
-        super(TestMailActivityBoardMethods, self).setUp()
-        # Set up activities
-
+class TestMailActivityBoardMethods(common.TransactionCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.env = cls.env(
+            context=dict(
+                cls.env.context,
+                mail_create_nolog=True,
+                mail_create_nosubscribe=True,
+                mail_notrack=True,
+                no_reset_password=True,
+                tracking_disable=True,
+            )
+        )
         # Create a user as 'Crm Salesman' and added few groups
-        mail_activity_group = self.create_mail_activity_group()
-        self.employee = self.env["res.users"].create(
-            {
-                "company_id": self.env.ref("base.main_company").id,
-                "name": "Employee",
-                "login": "csu",
-                "email": "crmuser@yourcompany.com",
-                "groups_id": [
-                    (
-                        6,
-                        0,
-                        [
-                            self.env.ref("base.group_user").id,
-                        ],
-                    )
-                ],
-            }
-        )
-
+        cls.employee = new_test_user(cls.env, login="csu")
         # Create a user who doesn't have access to anything except activities
-
-        self.employee2 = self.env["res.users"].create(
-            {
-                "company_id": self.env.ref("base.main_company").id,
-                "name": "Employee2",
-                "login": "alien",
-                "email": "alien@yourcompany.com",
-                "groups_id": [(6, 0, [mail_activity_group.id])],
-            }
+        cls.employee2 = new_test_user(
+            cls.env,
+            login="alien",
+            groups="mail_activity_board.group_show_mail_activity_board",
         )
-
-        # lead_model_id = self.env['ir.model']._get('crm.lead').id
-        partner_model = self.env["ir.model"]._get("res.partner")
-
-        ActivityType = self.env["mail.activity.type"]
-        self.activity1 = ActivityType.create(
-            {
-                "name": "Initial Contact",
-                "delay_count": 5,
-                "delay_unit": "days",
-                "summary": "ACT 1 : Presentation, barbecue, ... ",
-                "res_model": partner_model.model,
-            }
+        cls.activity1 = cls._create_mail_activity_type(
+            cls, "Initial Contact", 5, "ACT 1 : Presentation, barbecue, ... "
         )
-        self.activity2 = ActivityType.create(
-            {
-                "name": "Call for Demo",
-                "delay_count": 6,
-                "delay_unit": "days",
-                "summary": "ACT 2 : I want to show you my ERP !",
-                "res_model": partner_model.model,
-            }
+        cls.activity2 = cls._create_mail_activity_type(
+            cls, "Call for Demo", 6, "ACT 2 : I want to show you my ERP !"
         )
-        self.activity3 = ActivityType.create(
-            {
-                "name": "Celebrate the sale",
-                "delay_count": 3,
-                "delay_unit": "days",
-                "summary": "ACT 3 : "
-                "Beers for everyone because I am a good salesman !",
-                "res_model": partner_model.model,
-            }
+        cls.activity3 = cls._create_mail_activity_type(
+            cls,
+            "Celebrate the sale",
+            3,
+            "ACT 3 : Beers for everyone because I am a good salesman !",
         )
-
         # I create an opportunity, as employee
-        self.partner_client = self.env.ref("base.res_partner_1")
+        cls.partner = cls.env["res.partner"].create({"name": "Test partner"})
 
         # assure there isn't any mail activity yet
-        self.env["mail.activity"].sudo().search([]).unlink()
+        cls.env["mail.activity"].sudo().search([]).unlink()
 
-        self.act1 = (
-            self.env["mail.activity"]
-            .sudo()
-            .create(
-                {
-                    "activity_type_id": self.activity3.id,
-                    "note": "Partner activity 1.",
-                    "res_id": self.partner_client.id,
-                    "res_model_id": partner_model.id,
-                    "user_id": self.employee.id,
-                }
-            )
+        cls.act1 = cls._create_mail_activity(
+            cls, cls.activity1, cls.partner, cls.employee
         )
-        self.act2 = (
-            self.env["mail.activity"]
-            .sudo()
-            .create(
-                {
-                    "activity_type_id": self.activity2.id,
-                    "note": "Partner activity 2.",
-                    "res_id": self.partner_client.id,
-                    "res_model_id": partner_model.id,
-                    "user_id": self.employee.id,
-                }
-            )
+        cls.act2 = cls._create_mail_activity(
+            cls, cls.activity2, cls.partner, cls.employee
         )
-        self.act3 = (
-            self.env["mail.activity"]
-            .sudo()
-            .create(
-                {
-                    "activity_type_id": self.activity3.id,
-                    "note": "Partner activity 3.",
-                    "res_id": self.partner_client.id,
-                    "res_model_id": partner_model.id,
-                    "user_id": self.employee.id,
-                }
-            )
+        cls.act3 = cls._create_mail_activity(
+            cls, cls.activity3, cls.partner, cls.employee
         )
 
-    def create_mail_activity_group(self):
-        manager_mail_activity_test_group = self.env["res.groups"].create(
-            {"name": "group_manager_mail_activity_test"}
-        )
-        mail_activity_model_id = (
-            self.env["ir.model"]
-            .sudo()
-            .search([("model", "=", "mail.activity")], limit=1)
-        )
-        access = self.env["ir.model.access"].create(
+    def _create_mail_activity_type(self, name, delay_count, summary):
+        return self.env["mail.activity.type"].create(
             {
-                "name": "full_access_mail_activity",
-                "model_id": mail_activity_model_id.id,
-                "perm_read": True,
-                "perm_write": True,
-                "perm_create": True,
-                "perm_unlink": True,
+                "name": name,
+                "delay_count": delay_count,
+                "delay_unit": "days",
+                "summary": summary,
+                "res_model": "res.partner",
             }
         )
-        access.group_id = manager_mail_activity_test_group
-        return manager_mail_activity_test_group
+
+    def _create_mail_activity(self, activity_type, record, user):
+        model = self.env["ir.model"].sudo().search([("model", "=", record._name)])
+        return (
+            self.env["mail.activity"]
+            .sudo()
+            .create(
+                {
+                    "activity_type_id": activity_type.id,
+                    "note": "Partner activity %s." % activity_type.id,
+                    "res_id": record.id,
+                    "res_model_id": model.id,
+                    "user_id": user.id,
+                }
+            )
+        )
 
     def get_view(self, activity):
         action = activity.open_origin()
@@ -179,9 +119,7 @@ class TestMailActivityBoardMethods(TransactionCase):
         - if the correct activities are shown.
         """
         action_id = self.env.ref("mail_activity_board.open_boards_activities").id
-        action = self.partner_client.redirect_to_activities(
-            **{"id": self.partner_client.id}
-        )
+        action = self.partner.redirect_to_activities(**{"id": self.partner.id})
         self.assertEqual(action.get("id"), action_id)
 
         kwargs = {"groupby": ["activity_type_id"]}
@@ -207,6 +145,6 @@ class TestMailActivityBoardMethods(TransactionCase):
         """This test case checks the direct access from the activity to the
         linked model instance
         """
-        self.assertEqual(self.act3.related_model_instance, self.partner_client)
+        self.assertEqual(self.act3.related_model_instance, self.partner)
         self.act3.write({"res_id": False, "res_model": False})
         self.assertFalse(self.act3.related_model_instance)
